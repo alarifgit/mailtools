@@ -1,4 +1,4 @@
-import dns.resolver, idna, re, ipaddress
+import dns.resolver, idna, re, ipaddress, time
 from functools import lru_cache
 
 RESOLVER_PRESETS = {
@@ -64,16 +64,26 @@ RBL_ZONES = [
     {"zone":"zen.spamhaus.org",     "label":"Spamhaus ZEN"},
     {"zone":"bl.spamcop.net",       "label":"SpamCop"},
     {"zone":"dnsbl.sorbs.net",      "label":"SORBS"},
-    {"zone":"b.barracudacentral.org","label":"Barracuda"},  # may need reg
+    {"zone":"b.barracudacentral.org","label":"Barracuda"},
 ]
 
-def _rbl_query_ip(ip, resolver_choice="system"):
+def _rbl_query_ip_with_timing(ip, resolver_choice="system"):
+    """RBL query with individual timing and delist URLs"""
     if ":" in ip:
-        return [{"zone":z["zone"],"label":z["label"],"status":"skipped","txt":"IPv6 not checked for this list"} for z in RBL_ZONES]
+        return [{"zone":z["zone"],"label":z["label"],"status":"skipped","txt":"IPv6 not checked","ms":0,"note":"","delist":None} for z in RBL_ZONES]
+    
     rev = ".".join(ip.split(".")[::-1])
     rows = []
+    delist_urls = {
+        "zen.spamhaus.org": "https://www.spamhaus.org/lookup/",
+        "bl.spamcop.net": "https://www.spamcop.net/bl.shtml",
+        "dnsbl.sorbs.net": "https://www.sorbs.net/lookup.shtml",
+        "b.barracudacentral.org": "https://www.barracudacentral.org/rbl/removal-request"
+    }
+    
     for z in RBL_ZONES:
         name = f"{rev}.{z['zone']}"
+        start = time.time()
         try:
             a = _resolve(name,"A",resolver_choice)
             if a:
@@ -87,11 +97,24 @@ def _rbl_query_ip(ip, resolver_choice="system"):
                 status, txt = "not_listed", None
         except Exception:
             status, txt = "error", None
-        rows.append({"zone":z["zone"],"label":z["label"],"status":status,"txt":txt})
+        
+        ms = int((time.time() - start) * 1000)
+        delist = delist_urls.get(z['zone'])
+        rows.append({
+            "zone":z["zone"],
+            "label":z["label"],
+            "status":status,
+            "txt":txt,
+            "ms":ms,
+            "note":"",
+            "delist":delist
+        })
     return rows
 
 def rbl_check_target(target, resolver_choice="system"):
     if not target: return None
+    start = time.time()
+    
     target = target.strip()
     ips = []
     try:
@@ -102,7 +125,22 @@ def rbl_check_target(target, resolver_choice="system"):
             for rr in a:
                 try: ips.append(rr.address)
                 except Exception: pass
-    return {"target": target, "ips": ips, "results": [{"ip": ip, "lists": _rbl_query_ip(ip, resolver_choice)} for ip in ips]}
+    
+    results = []
+    for ip in ips:
+        lists = _rbl_query_ip_with_timing(ip, resolver_choice)
+        results.append({"ip": ip, "lists": lists})
+    
+    duration_ms = int((time.time() - start) * 1000)
+    checked = len(RBL_ZONES) * len(ips) if ips else 0
+    
+    return {
+        "target": target, 
+        "ips": ips, 
+        "results": results,
+        "duration_ms": duration_ms,
+        "checked": checked
+    }
 
 # ------- E-mail DNS Check (SPF/DKIM/DMARC) -------
 @lru_cache(maxsize=512)

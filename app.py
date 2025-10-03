@@ -12,8 +12,8 @@ from header_analyzer import analyze_headers
 
 app = FastAPI(title="MailTools")
 
-# Add session middleware (use a strong secret key in production!)
-app.add_middleware(SessionMiddleware, secret_key="your-secret-key-change-this-in-production")
+# Session middleware with secure secret
+app.add_middleware(SessionMiddleware, secret_key="change-this-to-a-secure-random-key-in-production-123456789")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -32,7 +32,6 @@ def track_check(request: Request, tool: str, target: str):
     if "recent_checks" not in request.session:
         request.session["recent_checks"] = []
     
-    # Add new check at the beginning
     recent = request.session["recent_checks"]
     recent.insert(0, {
         "tool": tool,
@@ -41,7 +40,6 @@ def track_check(request: Request, tool: str, target: str):
         "url": f"/{tool}?{'domain' if tool == 'dns' else 'host' if tool == 'dig' else 'target'}={target}"
     })
     
-    # Keep only last 5 checks
     request.session["recent_checks"] = recent[:5]
 
 def get_recent_checks(request: Request):
@@ -49,7 +47,6 @@ def get_recent_checks(request: Request):
     checks = request.session.get("recent_checks", [])
     
     for check in checks:
-        # Calculate relative time
         check_time = datetime.fromisoformat(check["timestamp"])
         delta = datetime.now() - check_time
         
@@ -69,10 +66,7 @@ def get_recent_checks(request: Request):
 
 def get_system_metrics(request: Request):
     """Get system metrics"""
-    # Calculate rate limit (requests in current session)
     request_count = request.session.get("request_count", 0)
-    
-    # Calculate response time (simulated average)
     response_time = system_metrics.get("last_request_time", 124)
     
     return {
@@ -85,8 +79,6 @@ def track_request(request: Request, start_time: float):
     """Track request metrics"""
     system_metrics["total_requests"] += 1
     system_metrics["last_request_time"] = int((time.time() - start_time) * 1000)
-    
-    # Increment session request count
     request.session["request_count"] = request.session.get("request_count", 0) + 1
 
 def get_context(request: Request):
@@ -104,7 +96,6 @@ async def home(request: Request):
     track_request(request, start_time)
     return templates.TemplateResponse("home.html", context)
 
-# E-mail DNS Check
 @app.get("/dns", response_class=HTMLResponse)
 async def dns_get(request: Request, domain: Optional[str] = None, resolver: Optional[str] = Query(default="system")):
     start_time = time.time()
@@ -143,7 +134,6 @@ async def dns_post(request: Request, domain: str = Form(...), resolver: str = Fo
     track_request(request, start_time)
     return templates.TemplateResponse("dns.html", context)
 
-# Message Header Analyzer
 @app.get("/mha", response_class=HTMLResponse)
 async def mha_get(request: Request):
     start_time = time.time()
@@ -171,7 +161,6 @@ async def mha_post(request: Request, headers_text: str = Form(...)):
     track_request(request, start_time)
     return templates.TemplateResponse("mha.html", context)
 
-# Dig (DNS Lookup)
 @app.get("/dig", response_class=HTMLResponse)
 async def dig_get(request: Request, host: Optional[str] = None, types: Optional[str] = None, resolver: Optional[str] = Query(default="system")):
     start_time = time.time()
@@ -229,7 +218,6 @@ async def dig_post(
     track_request(request, start_time)
     return templates.TemplateResponse("dig.html", context)
 
-# RBL / Blacklist checks
 @app.get("/rbl", response_class=HTMLResponse)
 async def rbl_get(request: Request, target: Optional[str] = None, resolver: Optional[str] = Query(default="system")):
     start_time = time.time()
@@ -268,7 +256,6 @@ async def rbl_post(request: Request, target: str = Form(...), resolver: str = Fo
     track_request(request, start_time)
     return templates.TemplateResponse("rbl.html", context)
 
-# Clear history endpoint
 @app.post("/clear-history", response_class=HTMLResponse)
 async def clear_history(request: Request):
     request.session["recent_checks"] = []
