@@ -4,3 +4,4 @@ jinja2
 dnspython
 idna
 python-multipart
+itsdangerous

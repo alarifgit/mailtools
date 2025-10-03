@@ -5,54 +5,111 @@
 <title>MailTools</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="/static/favicon.svg">
-<link href="/static/styles.css?v=5" rel="stylesheet">
+<link href="/static/styles.css?v=7" rel="stylesheet">
 <script defer src="/static/ui.js"></script>
 </head>
 <body>
 <header class="appbar">
   <div class="appbar-inner">
     <button class="hamburger" id="toggleSidebar" aria-label="Toggle sidebar">☰</button>
-    <a class="brand" href="/">MailTools</a>
+    <a class="brand" href="/">
+      <span class="brand-icon">📧</span>
+      <span>MailTools</span>
+    </a>
     <form action="/dns" method="get" class="top-search" autocomplete="off">
       <input name="domain" type="text" placeholder="Quick domain check (example.com)">
       <button>Check</button>
     </form>
-    
   </div>
 </header>
 
 <div class="layout">
   <aside class="sidebar" id="sidebar">
-    <div class="side-section">
-      <h4>TOOLS</h4>
-      <a class="side-link" href="/dns">E-mail DNS Check</a>
-      <a class="side-link" href="/dig">Dig</a>
-      <a class="side-link" href="/mha">Message Header Analyzer</a>
-          <a class="side-link" href="/rbl">RBL</a>
-</div>
-
-    <div class="side-section">
-      <h4>STATUS</h4>
-      <div class="metric"><span class="dot ok"></span> App: Online</div>
-      <div class="metric"><span class="dot"></span> Jobs: Idle</div>
-      <div class="metric"><span class="dot"></span> Cache: n/a</div>
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📧</div>
+      <div class="sidebar-logo-text">MailTools</div>
     </div>
 
     <div class="side-section">
-      <h4>SHORTCUTS</h4>
-      <div class="pill-row">
-        <a class="pill" href="/dig?host=example.com&types=A,CNAME,MX,TXT">example.com</a>
-        <a class="pill" href="/dns?domain=outlook.com">outlook.com auth</a>
-        <a class="pill" href="/dns?domain=gmail.com">gmail.com auth</a>
+      <h4>TOOLS</h4>
+      <a class="side-link" href="/dns">
+        <span class="side-link-icon">🔍</span>
+        <span>E-mail DNS Check</span>
+      </a>
+      <a class="side-link" href="/dig">
+        <span class="side-link-icon">⚙️</span>
+        <span>Dig</span>
+      </a>
+      <a class="side-link" href="/mha">
+        <span class="side-link-icon">📋</span>
+        <span>Message Header Analyzer</span>
+      </a>
+      <a class="side-link" href="/rbl">
+        <span class="side-link-icon">🛡️</span>
+        <span>RBL / Blacklist</span>
+      </a>
+    </div>
+
+    <div class="side-section">
+      <h4>RECENT CHECKS</h4>
+      {% if recent_checks and recent_checks|length > 0 %}
+        {% for check in recent_checks %}
+        <a class="recent-item" href="{{ check.url }}">
+          <div class="recent-item-content">
+            <div class="recent-item-domain">{{ check.target }}</div>
+            <div class="recent-item-meta">{{ check.tool|upper }} Check • {{ check.time_ago }}</div>
+          </div>
+          <div class="recent-item-check">✓</div>
+        </a>
+        {% endfor %}
+        <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+      {% else %}
+        <div style="padding: 10px; color: var(--text-muted); font-size: 0.8125rem;">
+          No recent checks yet
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="side-section">
+      <h4>SYSTEM</h4>
+      <div class="metric">
+        <div class="metric-label">
+          <span class="dot ok"></span>
+          <span>API Status</span>
+        </div>
+        <div class="metric-value">{{ system_metrics.api_status }}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">
+          <span>Rate Limit</span>
+        </div>
+        <div class="metric-value">{{ system_metrics.rate_limit }}</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">
+          <span>Response Time</span>
+        </div>
+        <div class="metric-value">{{ system_metrics.response_time }}</div>
       </div>
     </div>
 
-    <div class="side-footer">© 2025</div>
+    <div class="side-footer">© 2025 Alarif Hashem</div>
   </aside>
 
   <main class="content">
     {% block content %}{% endblock %}
   </main>
 </div>
+
+<script>
+async function clearHistory() {
+  try {
+    await fetch('/clear-history', { method: 'POST' });
+    location.reload();
+  } catch (e) {
+    console.error('Failed to clear history', e);
+  }
+}
+</script>
 </body>
 </html>

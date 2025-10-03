@@ -1,27 +1,297 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="toolbar-row"><div class="toolbar-left"><h1>Message Header Analyzer</h1></div></div>
+<div class="toolbar-row">
+  <div class="toolbar-left"><h1>Message Header Analyzer</h1></div>
+</div>
+
 <div class="rowlist">
-  <div class="rowcard"><div class="row-left"><div class="row-title">Paste Headers</div><div class="row-sub">Raw email headers only</div></div><div class="row-right full">
-    <form method="post"><textarea name="headers_text" rows="16" required>{{ headers_text }}</textarea><div class="actions"><button type="submit" class="btn">Analyze</button></div></form>
-  </div></div>
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Paste Headers</div>
+      <div class="row-sub">Raw email headers only (View > Message Source)</div>
+    </div>
+    <div class="row-right full">
+      <form method="post">
+        <textarea name="headers_text" rows="12" placeholder="Paste email headers here..." required>{{ headers_text }}</textarea>
+        <div class="actions">
+          <button type="submit" class="btn">Analyze Headers</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   {% if analysis %}
-  <div class="rowcard"><div class="row-left"><div class="row-title">Verdict</div><div class="row-sub">Auth results & tips</div></div><div class="row-right">
-    <ul class="kv">
-      <li><span>SPF</span><strong>{{ analysis.verdict.spf }}</strong></li>
-      <li><span>DKIM</span><strong>{{ analysis.verdict.dkim }}</strong></li>
-      <li><span>DMARC</span><strong>{{ analysis.verdict.dmarc }}</strong></li>
-      <li><span>SCL</span><strong>{{ analysis.verdict.scl or "n/a" }}</strong></li>
-    </ul>
-    {% if analysis.tips %}<div class="hint">Tips</div><ul class="advice">{% for t in analysis.tips %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
-    <details><summary>Show raw headers</summary><div class="copywrap"><pre class="mono" data-copy>{{ analysis.raw }}</pre><button class="copybtn" data-copy-btn>Copy</button></div></details>
-    {% if analysis.found.authentication_results or analysis.found.received_spf %}
-    <details><summary>Show parsed Authentication-Results / Received-SPF</summary>
-      {% if analysis.found.authentication_results %}<h4>Authentication-Results (top to bottom)</h4><ol>{% for a in analysis.found.authentication_results %}<li><code class="mono">{{ a }}</code></li>{% endfor %}</ol>{% endif %}
-      {% if analysis.found.received_spf %}<h4>Received-SPF (some hops)</h4><ol>{% for a in analysis.found.received_spf %}<li><code class="mono">{{ a }}</code></li>{% endfor %}</ol>{% endif %}
-    </details>
-    {% endif %}
-  </div></div>
+  <!-- Quick Verdict Summary -->
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Authentication Summary</div>
+      <div class="row-sub">Quick verdict on email authentication</div>
+    </div>
+    <div class="row-right full">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <div style="padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">SPF</div>
+          <div style="font-size: 1.125rem; font-weight: 600;">
+            {% if analysis.verdict.spf == 'pass' %}
+              <span style="color: var(--ok);">✓ Pass</span>
+            {% elif analysis.verdict.spf == 'fail' %}
+              <span style="color: var(--bad);">✗ Fail</span>
+            {% else %}
+              <span style="color: var(--warn);">? {{ analysis.verdict.spf|title }}</span>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div style="padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">DKIM</div>
+          <div style="font-size: 1.125rem; font-weight: 600;">
+            {% if analysis.verdict.dkim == 'pass' %}
+              <span style="color: var(--ok);">✓ Pass</span>
+            {% elif analysis.verdict.dkim == 'fail' %}
+              <span style="color: var(--bad);">✗ Fail</span>
+            {% else %}
+              <span style="color: var(--warn);">? {{ analysis.verdict.dkim|title }}</span>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div style="padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">DMARC</div>
+          <div style="font-size: 1.125rem; font-weight: 600;">
+            {% if analysis.verdict.dmarc == 'pass' %}
+              <span style="color: var(--ok);">✓ Pass</span>
+            {% elif analysis.verdict.dmarc == 'fail' %}
+              <span style="color: var(--bad);">✗ Fail</span>
+            {% else %}
+              <span style="color: var(--warn);">? {{ analysis.verdict.dmarc|title }}</span>
+            {% endif %}
+          </div>
+        </div>
+        
+        {% if analysis.verdict.scl %}
+        <div style="padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Spam Score</div>
+          <div style="font-size: 1.125rem; font-weight: 600;">
+            {% if analysis.verdict.scl|int >= 5 %}
+              <span style="color: var(--bad);">{{ analysis.verdict.scl }}/9</span>
+            {% elif analysis.verdict.scl|int == -1 %}
+              <span style="color: var(--ok);">Trusted</span>
+            {% else %}
+              <span style="color: var(--ok);">{{ analysis.verdict.scl }}/9</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Details -->
+  {% if analysis.analysis_data %}
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Email Details</div>
+      <div class="row-sub">Extracted information from headers</div>
+    </div>
+    <div class="row-right full">
+      <div class="kv">
+        {% if analysis.analysis_data.from_domain %}
+        <li>
+          <span>From Domain</span>
+          <strong><code>{{ analysis.analysis_data.from_domain }}</code></strong>
+        </li>
+        {% endif %}
+        
+        {% if analysis.analysis_data.return_path_domain %}
+        <li>
+          <span>Return-Path Domain</span>
+          <strong><code>{{ analysis.analysis_data.return_path_domain }}</code></strong>
+        </li>
+        {% endif %}
+        
+        {% if analysis.analysis_data.dkim_domain %}
+        <li>
+          <span>DKIM Signing Domain</span>
+          <strong><code>{{ analysis.analysis_data.dkim_domain }}</code></strong>
+        </li>
+        {% endif %}
+        
+        {% if analysis.analysis_data.sending_ip %}
+        <li>
+          <span>Sending IP</span>
+          <strong><code>{{ analysis.analysis_data.sending_ip }}</code></strong>
+        </li>
+        {% endif %}
+        
+        {% if analysis.analysis_data.alignment_check %}
+        <li>
+          <span>SPF Alignment</span>
+          <strong>
+            {% if analysis.analysis_data.alignment_check.spf_aligned %}
+              <span style="color: var(--ok);">✓ Aligned</span>
+            {% else %}
+              <span style="color: var(--warn);">Not Aligned</span>
+            {% endif %}
+          </strong>
+        </li>
+        <li>
+          <span>DKIM Alignment</span>
+          <strong>
+            {% if analysis.analysis_data.alignment_check.dkim_aligned %}
+              <span style="color: var(--ok);">✓ Aligned</span>
+            {% else %}
+              <span style="color: var(--warn);">Not Aligned</span>
+            {% endif %}
+          </strong>
+        </li>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Detailed Tips & Recommendations -->
+  {% if analysis.detailed_tips and analysis.detailed_tips|length > 0 %}
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Analysis & Recommendations</div>
+      <div class="row-sub">Detailed insights and actions</div>
+    </div>
+    <div class="row-right full">
+      {% for tip in analysis.detailed_tips %}
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-left: 3px solid 
+        {% if tip.severity == 'high' %}var(--bad)
+        {% elif tip.severity == 'medium' %}var(--warn)
+        {% else %}var(--info){% endif %}; 
+        border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+        
+        <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 8px;">
+          <span style="background: 
+            {% if tip.severity == 'high' %}rgba(239, 68, 68, 0.15)
+            {% elif tip.severity == 'medium' %}rgba(245, 158, 11, 0.15)
+            {% else %}rgba(56, 189, 248, 0.15){% endif %}; 
+            color: 
+            {% if tip.severity == 'high' %}var(--bad)
+            {% elif tip.severity == 'medium' %}var(--warn)
+            {% else %}var(--info){% endif %}; 
+            padding: 3px 8px; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;">
+            {{ tip.category }}
+          </span>
+          <div style="flex: 1;">
+            <div style="font-weight: 600; color: var(--text); margin-bottom: 6px;">{{ tip.title }}</div>
+            <div style="color: var(--text-sub); font-size: 0.875rem; margin-bottom: 8px;">{{ tip.description }}</div>
+            
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">✨ RECOMMENDED ACTION</div>
+              <div style="color: var(--text); font-size: 0.875rem;">{{ tip.action }}</div>
+            </div>
+            
+            <details style="margin: 0; padding: 0; border: none; background: none;">
+              <summary style="color: var(--accent); font-size: 0.8125rem; cursor: pointer; padding: 4px 0;">
+                Learn more about {{ tip.category }}
+              </summary>
+              <div style="color: var(--text-sub); font-size: 0.8125rem; margin-top: 6px; padding-left: 12px; border-left: 2px solid var(--border);">
+                {{ tip.learn_more }}
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Authentication Flow -->
+  {% if analysis.analysis_data.authentication_flow and analysis.analysis_data.authentication_flow.total_hops > 1 %}
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Email Route Analysis</div>
+      <div class="row-sub">Authentication through {{ analysis.analysis_data.authentication_flow.total_hops }} hops</div>
+    </div>
+    <div class="row-right full">
+      <div class="info-box">
+        <div class="info-box-title">Multi-Hop Detection</div>
+        This email passed through {{ analysis.analysis_data.authentication_flow.total_hops }} mail servers before reaching the destination.
+        {% if analysis.analysis_data.authentication_flow.forwarding_detected %}
+        <div style="margin-top: 8px; color: var(--warn);">⚠️ Forwarding was detected in the email path.</div>
+        {% endif %}
+      </div>
+      
+      {% if analysis.analysis_data.authentication_flow.issues %}
+      <div style="margin-top: 12px;">
+        <div style="font-weight: 600; margin-bottom: 8px; font-size: 0.875rem;">Issues Detected:</div>
+        <ul style="margin: 0; padding-left: 20px;">
+          {% for issue in analysis.analysis_data.authentication_flow.issues %}
+          <li style="color: var(--warn); font-size: 0.875rem; margin: 4px 0;">{{ issue }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Raw Headers (Collapsible) -->
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Raw Headers</div>
+      <div class="row-sub">Full email header data</div>
+    </div>
+    <div class="row-right full">
+      <details>
+        <summary>Show raw email headers</summary>
+        <div class="copywrap" style="margin-top: 12px;">
+          <pre class="mono" data-copy style="max-height: 400px; overflow-y: auto;">{{ analysis.raw }}</pre>
+          <button class="copybtn" data-copy-btn>Copy</button>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- Authentication Results Details -->
+  {% if analysis.found.authentication_results or analysis.found.received_spf %}
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Authentication Records</div>
+      <div class="row-sub">Parsed from headers</div>
+    </div>
+    <div class="row-right full">
+      <details>
+        <summary>Show parsed authentication results</summary>
+        <div style="margin-top: 12px;">
+          {% if analysis.found.authentication_results %}
+          <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 8px;">Authentication-Results Headers:</h4>
+          <ol style="margin: 0 0 16px 0; padding-left: 20px;">
+            {% for a in analysis.found.authentication_results %}
+            <li style="margin: 6px 0;"><code class="mono" style="display: block;">{{ a }}</code></li>
+            {% endfor %}
+          </ol>
+          {% endif %}
+          
+          {% if analysis.found.received_spf %}
+          <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 8px;">Received-SPF Headers:</h4>
+          <ol style="margin: 0; padding-left: 20px;">
+            {% for a in analysis.found.received_spf %}
+            <li style="margin: 6px 0;"><code class="mono" style="display: block;">{{ a }}</code></li>
+            {% endfor %}
+          </ol>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+  </div>
+  {% endif %}
+
   {% endif %}
 </div>
+
+<style>
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+</style>
 {% endblock %}
