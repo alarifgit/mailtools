@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar-row">
+  <div class="toolbar-left"><h1>DNS Auth Checker</h1></div>
+  <div class="toolbar-right">
+    <form method="post" class="inline-form">
+      <input type="text" name="domain" value="{{ domain }}" placeholder="example.com" required>
+      <button type="submit" class="btn">Check</button>
+    </form>
+  </div>
+</div>
+{% if results %}
+<div class="rowlist">
+  <div class="rowcard"><div class="row-left"><div class="row-title">MX</div><div class="row-sub">{% if results.mx.ok %}<span class="badge ok">OK</span> MX found{% else %}<span class="badge bad">FAIL</span> No MX{% endif %}</div></div><div class="row-right mono-wrap">{% if results.mx.ok %}<ul class="list-plain">{% for h in results.mx.hosts %}<li><code class="mono">{{ h }}</code></li>{% endfor %}</ul>{% endif %}</div></div>
+  <div class="rowcard"><div class="row-left"><div class="row-title">SPF</div><div class="row-sub">{% if results.spf.present %}<span class="badge ok">OK</span> SPF present{% else %}<span class="badge bad">FAIL</span> SPF missing{% endif %}</div></div><div class="row-right">
+    {% if results.spf.present %}
+      <div class="copywrap"><pre class="mono" data-copy>{{ results.spf.record }}</pre><button class="copybtn" data-copy-btn>Copy</button></div>
+      {% if results.spf.redirect_chain and results.spf.redirect_chain|length > 0 %}
+        <div class="hint">Redirect chain:</div>
+        <ul class="list-plain">{% for hop in results.spf.redirect_chain %}<li>→ <code class="mono">{{ hop.domain }}</code>{% if hop.record %}<div class="copywrap"><pre class="mono" data-copy>{{ hop.record }}</pre><button class="copybtn" data-copy-btn>Copy</button></div>{% else %}<ul class="issues"><li>No SPF at redirect target.</li></ul>{% endif %}</li>{% endfor %}</ul>
+        {% if results.spf.effective_record and results.spf.effective_record != results.spf.record %}
+          <div class="hint">Effective SPF (after redirect):</div>
+          <div class="copywrap"><pre class="mono" data-copy>{{ results.spf.effective_record }}</pre><button class="copybtn" data-copy-btn>Copy</button></div>
+        {% endif %}
+      {% endif %}
+      {% if results.spf.lookup_count is not none %}<div class="hint">Estimated DNS lookups (expanded): {{ results.spf.lookup_count }}</div>{% endif %}
+      {% if results.spf.include_hops and results.spf.include_hops|length > 0 %}
+        <details><summary>Show includes (expanded)</summary><ul class="list-plain">{% for hop in results.spf.include_hops %}<li>include: <code class="mono">{{ hop.domain }}</code>{% if hop.record %}<div class="copywrap"><pre class="mono" data-copy>{{ hop.record }}</pre><button class="copybtn" data-copy-btn>Copy</button></div>{% else %}<ul class="issues"><li>No SPF at include target.</li></ul>{% endif %}</li>{% endfor %}</ul></details>
+      {% endif %}
+      {% if results.spf.issues %}<ul class="issues">{% for i in results.spf.issues %}<li>{{ i }}</li>{% endfor %}</ul>{% endif %}
+    {% endif %}
+  </div></div>
+  <div class="rowcard"><div class="row-left"><div class="row-title">DKIM</div><div class="row-sub"><span class="badge info">Check</span> selector1/selector2</div></div><div class="row-right"><ul class="list-plain">{% for sel, data in results.dkim.items() %}<li>{% if data.present %}<span class="badge ok">OK</span> {{ sel }}{% if data.cname %}<div class="copywrap inline"><code class="mono" data-copy>{{ data.cname }}</code><button class="copybtn sm" data-copy-btn>Copy</button></div>{% endif %}{% else %}<span class="badge bad">MISSING</span> {{ sel }}{% endif %}</li>{% endfor %}</ul><div class="hint">Tip: Enable DKIM in M365 and publish both selector CNAMEs.</div></div></div>
+  <div class="rowcard"><div class="row-left"><div class="row-title">DMARC</div><div class="row-sub">{% if results.dmarc.present %}<span class="badge ok">OK</span> policy: {{ results.dmarc.policy or "unknown" }}{% else %}<span class="badge bad">FAIL</span> missing{% endif %}</div></div><div class="row-right">{% if results.dmarc.present %}<div class="copywrap"><pre class="mono" data-copy>{{ results.dmarc.record }}</pre><button class="copybtn" data-copy-btn>Copy</button></div>{% if results.dmarc.issues %}<ul class="issues">{% for i in results.dmarc.issues %}<li>{{ i }}</li>{% endfor %}</ul>{% endif %}{% if results.dmarc.advice %}<ul class="advice">{% for a in results.dmarc.advice %}<li>{{ a }}</li>{% endfor %}</ul>{% endif %}{% endif %}</div></div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MailTools</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/static/favicon.svg">
+<link href="/static/styles.css?v=5" rel="stylesheet">
+<script defer src="/static/ui.js"></script>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-inner">
+    <button class="hamburger" id="toggleSidebar" aria-label="Toggle sidebar">☰</button>
+    <a class="brand" href="/">MailTools</a>
+    <form action="/dns" method="get" class="top-search" autocomplete="off">
+      <input name="domain" type="text" placeholder="Quick domain check (example.com)">
+      <button>Check</button>
+    </form>
+    
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-section">
+      <h4>TOOLS</h4>
+      <a class="side-link" href="/dns">E-mail DNS Check</a>
+      <a class="side-link" href="/dig">Dig</a>
+      <a class="side-link" href="/mha">Message Header Analyzer</a>
+          <a class="side-link" href="/rbl">RBL</a>
+</div>
+
+    <div class="side-section">
+      <h4>STATUS</h4>
+      <div class="metric"><span class="dot ok"></span> App: Online</div>
+      <div class="metric"><span class="dot"></span> Jobs: Idle</div>
+      <div class="metric"><span class="dot"></span> Cache: n/a</div>
+    </div>
+
+    <div class="side-section">
+      <h4>SHORTCUTS</h4>
+      <div class="pill-row">
+        <a class="pill" href="/dig?host=example.com&types=A,CNAME,MX,TXT">example.com</a>
+        <a class="pill" href="/dns?domain=outlook.com">outlook.com auth</a>
+        <a class="pill" href="/dns?domain=gmail.com">gmail.com auth</a>
+      </div>
+    </div>
+
+    <div class="side-footer">© 2025</div>
+  </aside>
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

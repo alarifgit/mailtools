@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar-row"><div class="toolbar-left"><h1>Message Header Analyzer</h1></div></div>
+<div class="rowlist">
+  <div class="rowcard"><div class="row-left"><div class="row-title">Paste Headers</div><div class="row-sub">Raw email headers only</div></div><div class="row-right full">
+    <form method="post"><textarea name="headers_text" rows="16" required>{{ headers_text }}</textarea><div class="actions"><button type="submit" class="btn">Analyze</button></div></form>
+  </div></div>
+  {% if analysis %}
+  <div class="rowcard"><div class="row-left"><div class="row-title">Verdict</div><div class="row-sub">Auth results & tips</div></div><div class="row-right">
+    <ul class="kv">
+      <li><span>SPF</span><strong>{{ analysis.verdict.spf }}</strong></li>
+      <li><span>DKIM</span><strong>{{ analysis.verdict.dkim }}</strong></li>
+      <li><span>DMARC</span><strong>{{ analysis.verdict.dmarc }}</strong></li>
+      <li><span>SCL</span><strong>{{ analysis.verdict.scl or "n/a" }}</strong></li>
+    </ul>
+    {% if analysis.tips %}<div class="hint">Tips</div><ul class="advice">{% for t in analysis.tips %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+    <details><summary>Show raw headers</summary><div class="copywrap"><pre class="mono" data-copy>{{ analysis.raw }}</pre><button class="copybtn" data-copy-btn>Copy</button></div></details>
+    {% if analysis.found.authentication_results or analysis.found.received_spf %}
+    <details><summary>Show parsed Authentication-Results / Received-SPF</summary>
+      {% if analysis.found.authentication_results %}<h4>Authentication-Results (top to bottom)</h4><ol>{% for a in analysis.found.authentication_results %}<li><code class="mono">{{ a }}</code></li>{% endfor %}</ol>{% endif %}
+      {% if analysis.found.received_spf %}<h4>Received-SPF (some hops)</h4><ol>{% for a in analysis.found.received_spf %}<li><code class="mono">{{ a }}</code></li>{% endfor %}</ol>{% endif %}
+    </details>
+    {% endif %}
+  </div></div>
+  {% endif %}
+</div>
+{% endblock %}

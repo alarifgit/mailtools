@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar-row">
+  <div class="toolbar-left"><h1>RBL / Blacklist Check</h1></div>
+</div>
+
+{% if outcome %}
+<div class="rbl-banner" style="display:flex;gap:12px;align-items:center;margin:10px 0 16px">
+  <span class="pill" title="How many lists were queried">Checked: <b>{{ outcome.checked }}</b></span>
+  <span class="pill" title="Total elapsed time for this query">Time: <b>{{ outcome.duration_ms }} ms</b></span>
+  <span class="pill" title="Total positives across all IPs and lists">
+    Listed:
+    <b>
+      {% set cnt = 0 %}
+      {% for res in outcome.results %}
+        {% for r in res.lists %}
+          {% if r.status == 'listed' %}{% set cnt = cnt + 1 %}{% endif %}
+        {% endfor %}
+      {% endfor %}
+      {{ cnt }}
+    </b>
+  </span>
+</div>
+{% endif %}
+
+<div class="rowlist">
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Target</div>
+      <div class="row-sub">Hostname or IP address</div>
+    </div>
+    <div class="row-right full">
+      <form method="post" class="inline-form" style="flex-wrap:wrap;gap:10px">
+        <input type="text" name="target" value="{{ target or '' }}" placeholder="mail.example.com or 203.0.113.10" required style="min-width:320px">
+        <select name="resolver" aria-label="DNS resolver">
+          {% for key, val in presets.items() %}
+            <option value="{{ key }}" {% if resolver==key %}selected{% endif %}>{{ val.label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn">Run</button>
+      </form>
+    </div>
+  </div>
+
+  {% if outcome %}
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Summary</div>
+      <div class="row-sub">
+        Resolved IPs and lists checked
+      </div>
+    </div>
+    <div class="row-right full">
+      {% if outcome.ips and outcome.ips|length > 0 %}
+        <div style="margin:4px 0 10px">Resolved IPs:
+          {% for ip in outcome.ips %}<span class="pill">{{ ip }}</span>{% endfor %}
+        </div>
+      {% else %}
+        <div class="hint">No A records were resolved for the target (host lookup returned nothing).</div>
+      {% endif %}
+      <div>Checked lists: <b>{{ outcome.checked }}</b> · Total time: <b>{{ outcome.duration_ms }} ms</b></div>
+    </div>
+  </div>
+
+  {% for res in outcome.results %}
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">DNSBL Results</div>
+      <div class="row-sub">IP: {{ res.ip }}</div>
+    </div>
+    <div class="row-right full">
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>List</th><th>Status</th><th>Details</th><th>Time</th><th>Delist</th></tr></thead>
+          <tbody>
+            {% for r in res.lists %}
+              <tr>
+                <td><span title="{{ r.note or '' }}">{{ r.label }}</span></td>
+                <td>
+                  {% if r.status == 'listed' %}<span class="badge bad">LISTED</span>
+                  {% elif r.status == 'not_listed' %}<span class="badge ok">not listed</span>
+                  {% elif r.status == 'skipped' %}<span class="badge warn">skipped</span>
+                  {% else %}<span class="badge warn">error</span>{% endif %}
+                </td>
+                <td>{% if r.txt %}<code class="mono">{{ r.txt }}</code>{% else %}-{% endif %}</td>
+                <td>{{ r.ms }} ms</td>
+                <td>
+                  {% if r.status == 'listed' %}
+                    {% if r.delist %}<a class="pill" target="_blank" href="{{ r.delist.replace('{ip}', res.ip) }}">Delist</a>
+                    {% else %}<a class="pill" target="_blank" href="https://www.google.com/search?q=delist+{{ r.label | urlencode }}">Delist</a>
+                    {% endif %}
+                  {% else %}-{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Removal checklist</div>
+      <div class="row-sub">Copy & follow for IP {{ res.ip }}</div>
+    </div>
+    <div class="row-right full">
+      <div class="copywrap">
+        <pre class="mono">IP: {{ res.ip }}
+1) Fix the cause (compromised host, open relay, misconfig, abuse).
+2) Verify PTR (reverse DNS) and matching HELO/EHLO.
+3) Ensure SPF, DKIM, and DMARC are valid.
+4) Confirm no unauthenticated outbound relaying.
+5) Re-test against RBLs.
+6) Request delist using the buttons above for any remaining hits.</pre>
+        <button class="copybtn" data-copy-btn>Copy</button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

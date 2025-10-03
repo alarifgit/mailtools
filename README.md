@@ -1,1 +1,1 @@
-# mailtools
+# MailTools v6 — adds DNS Lookup tool (A/CNAME/MX/TXT)\n

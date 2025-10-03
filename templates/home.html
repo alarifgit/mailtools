@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Welcome</h1>
+<div class="rowlist">
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">E-mail DNS Check</div>
+      <div class="row-sub">SPF/DKIM/DMARC summary</div>
+    </div>
+    <div class="row-right full"><a class="btn" href="/dns">Open</a></div>
+  </div>
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Dig</div>
+      <div class="row-sub">A, CNAME, MX, TXT</div>
+    </div>
+    <div class="row-right full"><a class="btn" href="/dig">Open</a></div>
+  </div>
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Message Header Analyzer</div>
+      <div class="row-sub">Paste raw headers → verdict &amp; tips</div>
+    </div>
+    <div class="row-right full"><a class="btn" href="/mha">Open</a></div>
+  </div>
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">RBL / Blacklist Check</div>
+      <div class="row-sub">Spamhaus, Barracuda, SORBS, SpamCop, etc.</div>
+    </div>
+    <div class="row-right full"><a class="btn" href="/rbl">Open</a></div>
+  </div>
+</div>
+{% endblock %}

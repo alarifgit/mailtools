@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar-row">
+  <div class="toolbar-left"><h1>Dig</h1></div>
+</div>
+
+<div class="rowlist">
+  <div class="rowcard">
+    <div class="row-left">
+      <div class="row-title">Query</div>
+      <div class="row-sub">A, CNAME, MX, TXT</div>
+    </div>
+    <div class="row-right full">
+  <form method="post" class="form-grid">
+    <input type="text" name="host" value="{{ host }}" placeholder="host.example.com" required>
+    <div class="checks">
+      <label class="chk"><input type="checkbox" name="a" {% if 'A' in selected %}checked{% endif %}><span>A</span></label>
+      <label class="chk"><input type="checkbox" name="cname" {% if 'CNAME' in selected %}checked{% endif %}><span>CNAME</span></label>
+      <label class="chk"><input type="checkbox" name="mx" {% if 'MX' in selected %}checked{% endif %}><span>MX</span></label>
+      <label class="chk"><input type="checkbox" name="txt" {% if 'TXT' in selected %}checked{% endif %}><span>TXT</span></label>
+    </div>
+    <select name="resolver" aria-label="DNS resolver">
+      {% for key, val in presets.items() %}
+        <option value="{{ key }}" {% if resolver==key %}selected{% endif %}>{{ val.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn">Lookup</button>
+  </form>
+</div>
+  </div>
+
+  {% if results %}
+    {% for block in results %}
+    <div class="rowcard">
+      <div class="row-left">
+        <div class="row-title">{{ block.type }}</div>
+        <div class="row-sub">{{ block.host }}</div>
+      </div>
+      <div class="row-right">
+  <form method="post" class="form-grid">
+    <input type="text" name="host" value="{{ host }}" placeholder="host.example.com" required>
+    <div class="checks">
+      <label class="chk"><input type="checkbox" name="a" {% if 'A' in selected %}checked{% endif %}><span>A</span></label>
+      <label class="chk"><input type="checkbox" name="cname" {% if 'CNAME' in selected %}checked{% endif %}><span>CNAME</span></label>
+      <label class="chk"><input type="checkbox" name="mx" {% if 'MX' in selected %}checked{% endif %}><span>MX</span></label>
+      <label class="chk"><input type="checkbox" name="txt" {% if 'TXT' in selected %}checked{% endif %}><span>TXT</span></label>
+    </div>
+    <select name="resolver" aria-label="DNS resolver">
+      {% for key, val in presets.items() %}
+        <option value="{{ key }}" {% if resolver==key %}selected{% endif %}>{{ val.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn">Lookup</button>
+  </form>
+</div>
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
